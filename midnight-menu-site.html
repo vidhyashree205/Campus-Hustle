@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Midnight Menu – late-night food on campus</title>
+<style>
+:root{--board:#1f3b36;--board2:#2a4a43;--chalk:#f3efe4;--dim:#b4c4bc;--gold:#f2b134;--chilli:#e2574c;--ok:#8fd19e}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--board);color:var(--chalk);font:16px/1.5 "Trebuchet MS",Figtree,system-ui,sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+h1,h2,h3{font-family:"Arial Black","Bricolage Grotesque",Impact,sans-serif;margin:0;line-height:1.1}
+main{max-width:780px;margin:0 auto;padding:20px 16px 90px}
+h1{font-size:clamp(2.2rem,9vw,3.8rem);color:var(--gold);letter-spacing:-.02em}
+.sub{color:var(--dim);margin:8px 0 14px;max-width:50ch}
+.userbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;color:var(--dim);flex-wrap:wrap}
+nav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1.5px solid var(--chalk);background:transparent;border-radius:999px;padding:8px 16px;min-height:40px}
+button:hover{background:rgba(255,255,255,.08)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button.on{background:var(--gold);border-color:var(--gold);color:#2a1d00;font-weight:700}
+button.primary{background:var(--chalk);color:var(--board);font-weight:700}
+button.danger{border-color:var(--chilli);color:#ffb3ac}
+button[disabled]{opacity:.45;cursor:not-allowed}
+input,textarea{width:100%;background:var(--board2);border:1.5px solid #4c6b63;border-radius:10px;padding:10px 12px}
+label{display:block;font-weight:700;margin:12px 0 4px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.item{background:var(--board2);border-radius:14px;padding:16px;margin-bottom:12px;border-left:6px solid var(--gold)}
+.item.out{border-left-color:#6b7f78;opacity:.8}
+.seller-menu{margin:18px 0 24px}
+.seller-menu h2{font-size:1.25rem;margin:0 0 10px;color:var(--gold)}
+.seller-menu:first-child{margin-top:0}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.item h3{font-size:1.25rem}
+.price{font-family:"Arial Black",Impact,sans-serif;font-size:1.4rem;color:var(--gold);white-space:nowrap}
+.meta{color:var(--dim);font-size:.9rem;margin:4px 0 10px}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.85rem;font-weight:700;border:1.5px solid}
+.fresh{color:var(--ok);border-color:var(--ok)}.stale{color:var(--gold);border-color:var(--gold)}.gone{color:var(--dim);border-color:var(--dim)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.empty{border:2px dashed #4c6b63;border-radius:14px;padding:24px;color:var(--dim)}
+.panel{background:var(--board2);border-radius:14px;padding:16px;margin-bottom:18px}
+.panel h2{font-size:1.25rem;margin-bottom:8px}
+.panel ul,.panel ol{margin:6px 0 0;padding-left:20px}.panel li{margin-bottom:4px}
+.cmp{width:100%;border-collapse:collapse;font-size:.95rem}.cmp td,.cmp th{border-bottom:1px solid #4c6b63;padding:8px 6px;text-align:left;vertical-align:top}
+#chat{position:fixed;inset:0;background:var(--board);z-index:5;display:none;flex-direction:column}
+#chat.open{display:flex}
+#chat .bar{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1.5px solid #4c6b63}
+#msgs{flex:1;overflow-y:auto;padding:16px;max-width:780px;width:100%;margin:0 auto}
+.m{max-width:80%;margin-bottom:10px;padding:8px 12px;border-radius:14px;background:var(--board2)}
+.m.me{margin-left:auto;background:#3b5f56}
+.m small{display:block;color:var(--dim);font-size:.75rem}
+.m.offer{border:2px solid var(--gold)}
+.m.deal{background:var(--ok);color:#10301a;max-width:100%;text-align:center;font-weight:700}
+.compose{padding:10px 16px 16px;max-width:780px;width:100%;margin:0 auto}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--chalk);color:var(--board);padding:10px 16px;border-radius:999px;display:none;z-index:9;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<h1>Midnight Menu</h1>
+<p class="sub">Browse a different late-night menu from every seller. See prices, availability and pickup spots, then bargain right in the chat.</p>
+<div id="app"></div>
+</main>
+<div id="chat" role="dialog" aria-modal="true" aria-label="Chat">
+<div class="bar"><button id="back">Back</button><div><h2 id="ct" style="font-size:1.15rem"></h2><div id="cs" class="meta" style="margin:0"></div></div></div>
+<div id="msgs"></div>
+<div class="compose"><div class="chips" id="chips"></div>
+<div class="row"><input id="mi" placeholder="Type a message" aria-label="Message"><button class="primary" id="send" style="flex:0 0 auto">Send</button></div></div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10);
+const KEY='midnight_menu_v1';
+let S=load(),me=null,tab='browse',active=null,onlyOpen=false,q='';
+try{me=sessionStorage.getItem('mm_me')}catch(e){}
+
+function seed(){
+ const n=Date.now(),m=60000;
+ const users=[{id:'raju',name:'Raju Anna (Main Gate Cart)',base:41},{id:'meena',name:'Meena, Hostel C',base:12},{id:'suresh',name:'Suresh Tea Point',base:67},{id:'karthik',name:'Karthik (student)',base:0}];
+ const items=[
+  {id:'i1',title:'Egg maggi with cheese',price:60,qty:12,pickup:'Main gate cart',note:'Veg option on request.',sellerId:'raju',sellerName:users[0].name,open:true,updatedAt:n-8*m},
+  {id:'i2',title:'Masala chai',price:15,qty:40,pickup:'Tea point, next to library',note:'Free refill of the same cup if you come within 10 min.',sellerId:'suresh',sellerName:users[2].name,open:true,updatedAt:n-25*m},
+  {id:'i3',title:'Chicken roll',price:90,qty:6,pickup:'Hostel C lobby',note:'Ready by 10:30 pm.',sellerId:'meena',sellerName:users[1].name,open:true,updatedAt:n-40*m},
+  {id:'i4',title:'Bun parotta (2 pcs)',price:40,qty:3,pickup:'Main gate cart',note:'',sellerId:'raju',sellerName:users[0].name,open:true,updatedAt:n-5*60*m},
+  {id:'i5',title:'Cold coffee',price:50,qty:0,pickup:'Hostel C lobby',note:'',sellerId:'meena',sellerName:users[1].name,open:false,updatedAt:n-90*m},
+  {id:'i6',title:'Paneer frankie',price:70,qty:8,pickup:'Main gate cart',note:'Freshly rolled to order.',sellerId:'raju',sellerName:users[0].name,open:true,updatedAt:n-10*m},
+  {id:'i7',title:'Ginger tea',price:20,qty:24,pickup:'Tea point, next to library',note:'Strong ginger, less sugar on request.',sellerId:'suresh',sellerName:users[2].name,open:true,updatedAt:n-12*m},
+  {id:'i8',title:'Samosa (2 pcs)',price:30,qty:16,pickup:'Tea point, next to library',note:'Crispy potato filling.',sellerId:'suresh',sellerName:users[2].name,open:true,updatedAt:n-15*m},
+  {id:'i9',title:'Paneer cheese sandwich',price:65,qty:5,pickup:'Hostel C lobby',note:'Toasted fresh. No onion on request.',sellerId:'meena',sellerName:users[1].name,open:true,updatedAt:n-9*m}];
+ return{users,items,msgs:[],menuVersion:2};
+}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.items){if((s.menuVersion||1)<2){const additions=seed().items.filter(i=>['i6','i7','i8','i9'].includes(i.id));s.items.push(...additions.filter(i=>!s.items.some(x=>x.id===i.id)));s.menuVersion=2;localStorage.setItem(KEY,JSON.stringify(s))}return s}}catch(e){}const s=seed();try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}return s}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Could not save in this browser')}render()}
+window.addEventListener('storage',e=>{if(e.key===KEY){S=load();render()}});
+
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2600)}
+function ago(ts){const m=Math.max(0,Math.round((Date.now()-ts)/60000));return m<1?'just now':m<60?m+' min ago':Math.round(m/60)+' h ago'}
+function status(i){if(!i.open||i.qty<1)return['gone','Sold out'];return(Date.now()-i.updatedAt)/36e5<2?['fresh','Confirmed '+ago(i.updatedAt)]:['stale','Not confirmed since '+ago(i.updatedAt)]}
+function deals(uid){const u=S.users.find(x=>x.id===uid);return(u?u.base:0)+S.msgs.filter(m=>m.type==='deal'&&m.sellerId===uid).length}
+const user=()=>S.users.find(u=>u.id===me);
+
+function render(){
+ const app=$('#app');
+ if(!user()){
+  app.innerHTML=`<div class="panel"><h2>Who’s using this device?</h2><p class="meta">Everyone can buy and sell. Open the site in two tabs and sign in as different people to try a live bargain.</p>
+  <div class="actions">${S.users.map(u=>`<button data-u="${u.id}">${esc(u.name)}</button>`).join('')}</div>
+  <label for="nn">Or join as someone new</label><div class="row"><input id="nn" maxlength="30" placeholder="Your name and hostel"><button class="primary" id="join" style="flex:0 0 auto">Join</button></div></div>
+  <div class="actions"><button id="rs" class="danger">Reset demo data</button></div>`;
+  app.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>signIn(b.dataset.u));
+  $('#join').onclick=()=>{const v=$('#nn').value.trim();if(!v){toast('Enter a name');return}const u={id:uid(),name:v,base:0};S.users.push(u);save();signIn(u.id)};
+  $('#rs').onclick=reset;return}
+ app.innerHTML=`<div class="userbar"><span>Signed in as <b style="color:var(--chalk)">${esc(user().name)}</b></span><button id="sw">Switch user</button></div>
+ <nav aria-label="Sections">${[['browse','Browse food'],['sell','Sell something'],['chats','My chats'],['about','About this app']].map(([k,l])=>`<button data-t="${k}" class="${tab===k?'on':''}">${l}</button>`).join('')}</nav><div id="view"></div>`;
+ $('#sw').onclick=()=>{me=null;try{sessionStorage.removeItem('mm_me')}catch(e){}active=null;$('#chat').classList.remove('open');render()};
+ app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+ ({browse:vBrowse,sell:vSell,chats:vChats,about:vAbout})[tab]();
+ renderChat();
+}
+function signIn(id){me=id;try{sessionStorage.setItem('mm_me',id)}catch(e){}tab='browse';render()}
+function reset(){if(confirm('Reset all demo data?')){S=seed();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}me=null;render()}}
+
+function vBrowse(){
+ const l=S.items.filter(i=>(!onlyOpen||(i.open&&i.qty>0))&&(i.title+' '+i.note).toLowerCase().includes(q.toLowerCase()));
+ $('#view').innerHTML=`<div class="row" style="margin-bottom:14px"><input id="qs" value="${esc(q)}" placeholder="Search maggi, chai, roll…" aria-label="Search"><button id="oo" class="${onlyOpen?'on':''}" style="flex:0 0 auto">Available now</button></div>`+
+ (l.length?Object.values(l.reduce((groups,i)=>{(groups[i.sellerId]||(groups[i.sellerId]={name:i.sellerName,items:[]})).items.push(i);return groups},{})).map(g=>`<section class="seller-menu"><h2>${esc(g.name)}’s menu</h2>`+g.items.map(i=>{const[c,t]=status(i),mine=i.sellerId===me;return`<article class="item ${c==='gone'?'out':''}"><div class="top"><h3>${esc(i.title)}</h3><span class="price">₹${i.price}</span></div>
+ <div class="meta">${esc(i.sellerName)} · ${deals(i.sellerId)} deals done · pickup: ${esc(i.pickup||'ask seller')}</div>${i.note?`<p style="margin:0 0 8px">${esc(i.note)}</p>`:''}
+ <span class="pill ${c}">${t}</span> ${c!=='gone'?`<span class="pill gone">${i.qty} left</span>`:''}
+ <div class="actions">${mine?'<span class="meta">Your listing</span>':`<button class="primary" data-chat="${i.id}" ${c==='gone'?'disabled':''}>Chat and bargain</button>`}</div></article>`}).join('')+'</section>').join(''):`<div class="empty">No matches. Clear the search or post something in “Sell something”.</div>`);
+ $('#qs').oninput=e=>{q=e.target.value;const p=e.target.selectionStart;vBrowse();const n=$('#qs');n.focus();n.setSelectionRange(p,p)};
+ $('#oo').onclick=()=>{onlyOpen=!onlyOpen;vBrowse()};
+ document.querySelectorAll('[data-chat]').forEach(b=>b.onclick=()=>openChat(b.dataset.chat,me));
+}
+
+function vSell(){
+ const mine=S.items.filter(i=>i.sellerId===me);
+ $('#view').innerHTML=`<div class="panel"><h2>Add to your menu</h2>
+ <label for="t">What are you serving?</label><input id="t" maxlength="40" placeholder="Your signature late-night snack">
+ <div class="row"><div><label for="p">Price (₹)</label><input id="p" type="number" min="1" inputmode="numeric"></div><div><label for="qt">How many?</label><input id="qt" type="number" min="1" value="10" inputmode="numeric"></div></div>
+ <label for="pk">Pickup spot</label><input id="pk" maxlength="40" placeholder="Hostel B gate">
+ <label for="n">Note (optional)</label><textarea id="n" rows="2" maxlength="120" placeholder="Veg only. Ready by 11 pm."></textarea>
+ <div class="actions"><button class="primary" id="post">Add to menu</button></div></div>
+ <h2 style="font-size:1.25rem;margin-bottom:10px">Items on your menu</h2>`+
+ (mine.length?mine.map(i=>{const[c,t]=status(i);return`<article class="item ${c==='gone'?'out':''}"><div class="top"><h3>${esc(i.title)}</h3><span class="price">₹${i.price}</span></div><span class="pill ${c}">${t}</span> <span class="pill gone">${i.qty} left</span>
+ <div class="actions"><button data-a="ok" data-id="${i.id}">Still available</button><button data-a="dec" data-id="${i.id}">One sold</button><button data-a="out" data-id="${i.id}">${i.open?'Mark sold out':'Reopen'}</button><button class="danger" data-a="del" data-id="${i.id}">Delete</button></div></article>`}).join(''):`<div class="empty">You haven’t listed anything yet.</div>`);
+ $('#post').onclick=()=>{const title=$('#t').value.trim(),price=+$('#p').value,qty=+$('#qt').value;
+  if(!title||!(price>0)||!(qty>0)){toast('Add an item name, a price and a quantity');return}
+  S.items.unshift({id:uid(),title,price,qty,pickup:$('#pk').value.trim(),note:$('#n').value.trim(),sellerId:me,sellerName:user().name,open:true,updatedAt:Date.now()});tab='browse';save();toast('Added to your menu')};
+ document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const i=S.items.find(x=>x.id===b.dataset.id),a=b.dataset.a;
+  if(a==='ok'){i.updatedAt=Date.now();i.open=i.qty>0}
+  if(a==='dec'){i.qty=Math.max(0,i.qty-1);i.open=i.qty>0;i.updatedAt=Date.now()}
+  if(a==='out'){i.open=!i.open;if(i.open&&i.qty<1)i.qty=1;i.updatedAt=Date.now()}
+  if(a==='del'){if(!confirm('Delete this listing?'))return;S.items=S.items.filter(x=>x!==i)}
+  save()});
+}
+
+function vChats(){
+ const map={};
+ S.msgs.forEach(m=>{const it=S.items.find(i=>i.id===m.itemId);if(!it||(m.buyerId!==me&&it.sellerId!==me))return;(map[m.itemId+'|'+m.buyerId]=map[m.itemId+'|'+m.buyerId]||{it,last:m}).last=m});
+ const t=Object.values(map).sort((a,b)=>b.last.ts-a.last.ts);
+ $('#view').innerHTML=t.length?t.map(x=>`<article class="item"><div class="top"><h3>${esc(x.it.title)}</h3><span class="price">₹${x.it.price}</span></div><div class="meta">${esc(x.last.type==='deal'?'Deal agreed at ₹'+x.last.price:x.last.fromName+': '+(x.last.type==='offer'?'Offer ₹'+x.last.price:x.last.text))} · ${ago(x.last.ts)}</div><button data-k="${x.it.id}|${x.last.buyerId}">Open chat</button></article>`).join(''):`<div class="empty">No chats yet. Open an item in Browse and make an offer.</div>`;
+ document.querySelectorAll('[data-k]').forEach(b=>{const[a,c]=b.dataset.k.split('|');b.onclick=()=>openChat(a,c)});
+}
+
+function vAbout(){
+ $('#view').innerHTML=`
+ <div class="panel"><h2>The business</h2><p>Late-night food on campus: maggi, chai, rolls and parottas sold from gate carts, tea stalls and hostel rooms after 9 pm. This is a business that should exist in one place, not scattered across hostel WhatsApp groups.</p></div>
+ <div class="panel"><h2>Who owns it, and what annoys them</h2><ul>
+ <li><b>The seller</b> (a cart owner, tea stall or a student cook) answers “is it available?” and “how much?” fifty times a night.</li>
+ <li>Orders and prices get buried under forwards and good-night messages.</li>
+ <li>Bargaining happens in the open group chat, so everyone sees one person’s discount and expects it too.</li>
+ <li><b>The buyer</b> walks to the gate and finds it sold out.</li></ul></div>
+ <div class="panel"><h2>What WhatsApp gets wrong</h2>
+ <table class="cmp"><tr><th>WhatsApp group</th><th>Midnight Menu</th></tr>
+ <tr><td>Menu is a message that scrolls away</td><td>A separate menu for each seller, with price and pickup spot on every item</td></tr>
+ <tr><td>“Still available?” every time</td><td>Quantity left and “confirmed 8 min ago” on each listing</td></tr>
+ <tr><td>Bargaining in public</td><td>Private chat per buyer and item, with offer and counter buttons</td></tr>
+ <tr><td>No record of who delivers</td><td>Deals-done count on every seller</td></tr></table></div>
+ <div class="panel"><h2>What builds trust</h2><ul>
+ <li>Freshness stamp that turns amber after 2 hours without a seller confirmation.</li>
+ <li>Sold-out items are greyed out and cannot be chatted on.</li>
+ <li>Deals done are counted from agreed deals, not self-reported.</li>
+ <li>The agreed price and the pickup spot appear in the chat when a deal is made.</li></ul></div>
+ <div class="panel"><h2>Try it in 2 minutes</h2><ol>
+ <li>Open this page in two browser tabs.</li>
+ <li>Tab 1: sign in as <b>Karthik (student)</b>, open the chicken roll, tap “Offer ₹72”.</li>
+ <li>Tab 2: sign in as <b>Meena, Hostel C</b>, open “My chats” and accept or counter.</li>
+ <li>Watch the deal appear in both tabs and the quantity drop.</li></ol></div>
+ <div class="panel"><h2>Questions for your first-hour interview</h2><ul>
+ <li>How many “is it available?” messages do you get on a normal night?</li>
+ <li>When do you take bargaining, and when do you refuse?</li>
+ <li>What would make you stop using this and go back to WhatsApp?</li>
+ <li>Would you update the quantity yourself, and how often?</li></ul></div>
+ <div class="panel"><h2>How it’s built</h2><p>One HTML file with no AI and no server. Data is stored in this browser’s localStorage and syncs between tabs on the same device. To share listings between phones, replace the <code>load()</code> and <code>save()</code> functions with a small backend such as Firebase or Supabase.</p>
+ <div class="actions"><button id="rs" class="danger">Reset demo data</button></div></div>`;
+ $('#rs').onclick=reset;
+}
+
+function openChat(itemId,buyerId){active={itemId,buyerId};$('#chat').classList.add('open');renderChat();setTimeout(()=>$('#mi').focus(),50)}
+$('#back').onclick=()=>{active=null;$('#chat').classList.remove('open')};
+function post(extra){if(!active)return;S.msgs.push({id:uid(),itemId:active.itemId,buyerId:active.buyerId,from:me,fromName:user().name,ts:Date.now(),text:'',...extra});save()}
+function accept(price,it){S.msgs.push({id:uid(),itemId:it.id,buyerId:active.buyerId,from:me,fromName:user().name,ts:Date.now(),type:'deal',price,sellerId:it.sellerId,text:''});it.qty=Math.max(0,it.qty-1);it.open=it.qty>0;it.updatedAt=Date.now();save()}
+function renderChat(){
+ if(!active||!user())return;const it=S.items.find(i=>i.id===active.itemId);if(!it)return;
+ const l=S.msgs.filter(m=>m.itemId===active.itemId&&m.buyerId===active.buyerId).sort((a,b)=>a.ts-b.ts);
+ const sold=l.some(m=>m.type==='deal'),last=[...l].reverse().find(m=>m.type==='offer'),buyer=S.users.find(u=>u.id===active.buyerId);
+ $('#ct').textContent=it.title+' · ₹'+it.price;
+ $('#cs').textContent=(me===it.sellerId?'Buyer: '+(buyer?buyer.name:'')+' · ':'Seller: '+it.sellerName+' · ')+status(it)[1];
+ $('#msgs').innerHTML=(l.length?'':`<div class="empty">Say hi or offer a price. The seller will see it under “My chats”.</div>`)+l.map(m=>{
+  if(m.type==='deal')return`<div class="m deal">Deal agreed at ₹${m.price}. Meet at ${esc(it.pickup||'the pickup spot')}.</div>`;
+  const mine=m.from===me,can=m.type==='offer'&&!mine&&m===last&&!sold;
+  return`<div class="m ${mine?'me':''} ${m.type==='offer'?'offer':''}"><small>${esc(m.fromName)} · ${ago(m.ts)}</small>${m.type==='offer'?`Offer: <b>₹${m.price}</b>`:esc(m.text)}${can?`<div class="actions"><button class="primary" data-acc="${m.price}">Accept ₹${m.price}</button></div>`:''}</div>`}).join('');
+ const box=$('#msgs');box.scrollTop=box.scrollHeight;
+ box.querySelectorAll('[data-acc]').forEach(b=>b.onclick=()=>accept(+b.dataset.acc,it));
+ const isBuyer=me===active.buyerId;
+ $('#chips').innerHTML=sold?'':[.9,.8].map(f=>Math.round(it.price*f)).map(p=>`<button data-o="${p}">${isBuyer?'Offer':'Counter'} ₹${p}</button>`).join('')+'<button id="cust">Custom price</button>';
+ document.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>post({type:'offer',price:+b.dataset.o}));
+ const c=$('#cust');if(c)c.onclick=()=>{const v=+prompt('Your price in ₹');if(v>0)post({type:'offer',price:v})};
+}
+$('#send').onclick=()=>{const v=$('#mi').value.trim();if(!v)return;$('#mi').value='';post({type:'text',text:v})};
+$('#mi').addEventListener('keydown',e=>{if(e.key==='Enter')$('#send').click()});
+setInterval(()=>{if(!active&&user())render()},60000);
+render();
+</script>
+</body>
+</html>
